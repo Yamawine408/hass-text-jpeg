@@ -4,18 +4,18 @@ Home Assistant custom integration for rendering one line of text to JPEG.
 
 - FreeType `FT_LOAD_TARGET_NORMAL` rasterizes glyphs with grayscale antialiasing.
 - Pillow is used for the canvas, mask compositing and JPEG encoding.
-- Output directory: `/media`
+- Output: `/media`
 - Default font directory: `/config/www/fonts`
-- Single-line text only; no shapes, PNG output or transparency.
+- Single-line text only; no shapes, PNG or transparency.
 
 ## Install
 
 Copy `custom_components/hass_text_jpeg` into `/config/custom_components/`,
 restart Home Assistant, then add **Hass Text JPEG** from Settings → Devices & services.
 
-Put TTF/OTF fonts in `/config/www/fonts/`.
+Place TTF/OTF font files in `/config/www/fonts/`.
 
-## Example service call
+## Example
 
 ```yaml
 action: hass_text_jpeg.draw
@@ -27,11 +27,18 @@ data:
   height: 300
   font_size: 64
   x: 20
-  y: 20
+  pos_y: 20
   color: "#ffffff"
   background: "#202020"
   quality: 95
 ```
 
-The file is saved as `/media/alert.jpg`. `x` and `y` specify the top-left
-of the font line box.
+The file is saved as `/media/alert.jpg`. `x` and `pos_y` specify the
+top-left of the font line box. `pos_y` is used instead of `y` to avoid
+YAML parsers that interpret an unquoted `y` as a boolean key.
+
+## Error handling
+
+Expected problems (missing/invalid font, invalid color, invalid text,
+and output write failures) are returned as readable Home Assistant service
+errors. Unexpected failures are logged with a traceback.

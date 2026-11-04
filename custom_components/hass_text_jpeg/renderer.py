@@ -6,16 +6,42 @@ import freetype
 from PIL import Image
 
 
+class TextJpegError(Exception):
+    """Base class for expected text-to-JPEG errors."""
+
+
+class FontNotFoundError(TextJpegError):
+    """The requested font file does not exist."""
+
+
+class InvalidFontError(TextJpegError):
+    """FreeType could not load the requested font."""
+
+
+class InvalidColorError(TextJpegError):
+    """A color value is not in #RRGGBB format."""
+
+
+class OutputFileError(TextJpegError):
+    """The JPEG could not be written."""
+
+
 def _parse_color(value: str) -> tuple[int, int, int]:
     if not isinstance(value, str):
-        raise ValueError("Color must be #RRGGBB")
+        raise InvalidColorError("Color must be a string in #RRGGBB format")
+
     value = value.strip()
     if len(value) != 7 or not value.startswith("#"):
-        raise ValueError(f"Invalid color: {value}. Expected #RRGGBB")
+        raise InvalidColorError(
+            f"Invalid color '{value}'. Expected #RRGGBB"
+        )
+
     try:
         return tuple(int(value[i:i + 2], 16) for i in (1, 3, 5))
     except ValueError as err:
-        raise ValueError(f"Invalid color: {value}. Expected #RRGGBB") from err
+        raise InvalidColorError(
+            f"Invalid color '{value}'. Expected #RRGGBB"
+        ) from err
 
 
 def _glyph_mask(bitmap) -> Image.Image:
@@ -23,7 +49,9 @@ def _glyph_mask(bitmap) -> Image.Image:
     if width == 0 or rows == 0:
         return Image.new("L", (width, rows), 0)
 
-    raw = bytes(bitmap.buffer)  # Copy: FreeType reuses its glyph slot.
+    # Copy immediately because FreeType reuses its glyph slot on the next load.
+    raw = bytes(bitmap.buffer)
+
     if bitmap.pixel_mode == freetype.FT_PIXEL_MODE_GRAY:
         if pitch == width:
             return Image.frombytes("L", (width, rows), raw)
@@ -39,62 +67,108 @@ def _glyph_mask(bitmap) -> Image.Image:
                     pixels[col, row] = 255
         return result
 
-    raise ValueError(f"Unsupported FreeType pixel mode: {bitmap.pixel_mode}")
+    raise TextJpegError(
+        f"Unsupported FreeType bitmap pixel mode: {bitmap.pixel_mode}"
+    )
 
 
 def render_text_jpeg(
-    *, text: str, font_path: str, output_path: str, width: int, height: int,
-    font_size: int, x: int, y: int, color: str, background: str,
-    quality: int, spacing: int = 0,
+    *,
+    text: str,
+    font_path: str,
+    output_path: str,
+    width: int,
+    height: int,
+    font_size: int,
+    x: int,
+    y: int,
+    color: str,
+    background: str,
+    quality: int,
+    spacing: int = 0,
 ) -> Path:
     """Render one line using FreeType NORMAL grayscale antialiasing."""
     if not text:
-        raise ValueError("text must not be empty")
+        raise TextJpegError("text must not be empty")
     if "\n" in text or "\r" in text:
-        raise ValueError("Only single-line text is supported")
+        raise TextJpegError("Only single-line text is supported")
     if width < 1 or height < 1 or font_size < 1:
-        raise ValueError("width, height and font_size must be positive")
-    if not 1 <= quality <= 100 or spacing < 0:
-        raise ValueError("quality must be 1..100 and spacing must be >= 0")
+        raise TextJpegError("width, height and font_size must be positive")
+    if not 1 <= quality <= 100:
+        raise TextJpegError("quality must be between 1 and 100")
+    if spacing < 0:
+        raise TextJpegError("spacing must be zero or greater")
 
     font_file = Path(font_path)
     if not font_file.is_file():
-        raise FileNotFoundError(f"Font file not found: {font_file}")
+        raise FontNotFoundError(f"Font file not found: {font_file}")
 
-    face = freetype.Face(str(font_file))
-    face.set_pixel_sizes(0, font_size)
+    try:
+        face = freetype.Face(str(font_file))
+        face.set_pixel_sizes(0, font_size)
+    except Exception as err:
+        raise InvalidFontError(
+            f"Cannot load font file '{font_file}': {err}"
+        ) from err
+
     flags = freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_NORMAL
 
-    canvas = Image.new("RGB", (width, height), _parse_color(background))
-    ink = Image.new("RGB", (width, height), _parse_color(color))
-    mask = Image.new("L", (width, height), 0)
+    try:
+        canvas = Image.new("RGB", (width, height), _parse_color(background))
+        ink = Image.new("RGB", (width, height), _parse_color(color))
+        mask = Image.new("L", (width, height), 0)
 
-    # x/y specifies the top-left of the font line box.
-    baseline = y + (face.size.ascender >> 6)
-    pen_x = x
-    previous_index = 0
+        # x/y specify the top-left of the font line box.
+        baseline = y + (face.size.ascender >> 6)
+        pen_x = x
+        previous_index = 0
 
-    for i, char in enumerate(text):
-        glyph_index = face.get_char_index(ord(char))
-        if previous_index and glyph_index and face.has_kerning:
-            kern = face.get_kerning(previous_index, glyph_index, freetype.FT_KERNING_DEFAULT)
-            pen_x += kern.x >> 6
+        for index, char in enumerate(text):
+            glyph_index = face.get_char_index(ord(char))
+            if previous_index and glyph_index and face.has_kerning:
+                kerning = face.get_kerning(
+                    previous_index, glyph_index, freetype.FT_KERNING_DEFAULT
+                )
+                pen_x += kerning.x >> 6
 
-        face.load_char(ord(char), flags)
-        slot = face.glyph
-        glyph = _glyph_mask(slot.bitmap)
-        left = pen_x + slot.bitmap_left
-        top = baseline - slot.bitmap_top
-        if glyph.width and glyph.height:
-            mask.paste(glyph, (left, top))
+            face.load_char(ord(char), flags)
+            slot = face.glyph
+            glyph = _glyph_mask(slot.bitmap)
 
-        pen_x += slot.advance.x >> 6
-        if i != len(text) - 1:
-            pen_x += spacing
-        previous_index = glyph_index
+            glyph_left = pen_x + slot.bitmap_left
+            glyph_top = baseline - slot.bitmap_top
+            if glyph.width and glyph.height:
+                mask.paste(glyph, (glyph_left, glyph_top))
 
-    canvas.paste(ink, (0, 0), mask)
+            pen_x += slot.advance.x >> 6
+            if index != len(text) - 1:
+                pen_x += spacing
+            previous_index = glyph_index
+
+        canvas.paste(ink, (0, 0), mask)
+
+    except (InvalidColorError, TextJpegError):
+        raise
+    except Exception as err:
+        raise TextJpegError(f"Text rendering failed: {err}") from err
+
     destination = Path(output_path)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    canvas.save(destination, format="JPEG", quality=quality, subsampling=0, optimize=True)
+    try:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        canvas.save(
+            destination,
+            format="JPEG",
+            quality=quality,
+            subsampling=0,
+            optimize=True,
+        )
+    except OSError as err:
+        raise OutputFileError(
+            f"Cannot write JPEG file '{destination}': {err}"
+        ) from err
+    except Exception as err:
+        raise OutputFileError(
+            f"Failed to encode JPEG file '{destination}': {err}"
+        ) from err
+
     return destination

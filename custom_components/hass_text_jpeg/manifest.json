@@ -1,8 +1,9 @@
 {
   "domain": "hass_text_jpeg",
   "name": "Hass Text JPEG",
-  "version": "1.0.0",
-  "documentation": "https://github.com/",
+  "version": "1.0.1",
+  "documentation": "https://github.com/Yamawine408/hass-text-jepg",
+  "issue_tracker": "https://github.com/Yamawine408/hass-text-jepg/issues",
   "codeowners": [],
   "requirements": ["freetype-py==2.5.1", "Pillow>=10.0.0"],
   "config_flow": true,

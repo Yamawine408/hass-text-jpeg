@@ -4,6 +4,7 @@ draw:
   fields:
     text:
       name: Text
+      description: Text to render. Newlines are not supported.
       required: true
       example: "緊急地震速報 深度5"
       selector:
@@ -48,8 +49,9 @@ draw:
       selector:
         number:
           mode: box
-    y:
-      description: Top of the font line box.
+    pos_y:
+      name: Y position
+      description: Top of the font line box. Use pos_y because bare y can be parsed as a boolean YAML key.
       default: 10
       selector:
         number:
