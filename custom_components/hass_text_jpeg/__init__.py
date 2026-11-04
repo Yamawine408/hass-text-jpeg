@@ -48,7 +48,7 @@ SERVICE_SCHEMA = vol.Schema(
         vol.Optional("font_size", default=DEFAULT_FONT_SIZE): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=512)
         ),
-        vol.Optional("x", default=10): vol.Coerce(int),
+        vol.Optional("pos_x", default=10): vol.Coerce(int),
         vol.Optional("pos_y", default=10): vol.Coerce(int),
         vol.Optional("color", default=DEFAULT_COLOR): cv.string,
         vol.Optional("background", default=DEFAULT_BACKGROUND): cv.string,
@@ -108,7 +108,7 @@ async def async_setup_entry(hass: HomeAssistant, entry) -> bool:
                     width=data["width"],
                     height=data["height"],
                     font_size=data["font_size"],
-                    x=data["x"],
+                    x=data["pos_x"],
                     y=data["pos_y"],
                     color=data["color"],
                     background=data["background"],

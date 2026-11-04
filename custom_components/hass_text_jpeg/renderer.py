@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import freetype
-from PIL import Image
+from PIL import Image, ImageColor
 
 
 class TextJpegError(Exception):
@@ -27,20 +27,14 @@ class OutputFileError(TextJpegError):
 
 
 def _parse_color(value: str) -> tuple[int, int, int]:
+    """Accept Pillow color names and color strings such as #RRGGBB."""
     if not isinstance(value, str):
-        raise InvalidColorError("Color must be a string in #RRGGBB format")
-
-    value = value.strip()
-    if len(value) != 7 or not value.startswith("#"):
-        raise InvalidColorError(
-            f"Invalid color '{value}'. Expected #RRGGBB"
-        )
-
+        raise InvalidColorError("Color must be a color name or color string")
     try:
-        return tuple(int(value[i:i + 2], 16) for i in (1, 3, 5))
-    except ValueError as err:
+        return ImageColor.getrgb(value.strip())[:3]
+    except (ValueError, TypeError) as err:
         raise InvalidColorError(
-            f"Invalid color '{value}'. Expected #RRGGBB"
+            f"Unknown color '{value}'. Use a recognized color name or color value."
         ) from err
 
 

@@ -1,7 +1,7 @@
 {
   "domain": "hass_text_jpeg",
   "name": "Hass Text JPEG",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "documentation": "https://github.com/Yamawine408/hass-text-jepg",
   "issue_tracker": "https://github.com/Yamawine408/hass-text-jepg/issues",
   "codeowners": [],

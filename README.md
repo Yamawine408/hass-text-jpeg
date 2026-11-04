@@ -28,12 +28,12 @@ data:
   font_size: 64
   x: 20
   pos_y: 20
-  color: "#ffffff"
+  color: white
   background: "#202020"
   quality: 95
 ```
 
-The file is saved as `/media/alert.jpg`. `x` and `pos_y` specify the
+The file is saved as `/media/alert.jpg`. `pos_x` and `pos_y` specify the
 top-left of the font line box. `pos_y` is used instead of `y` to avoid
 YAML parsers that interpret an unquoted `y` as a boolean key.
 
@@ -42,3 +42,4 @@ YAML parsers that interpret an unquoted `y` as a boolean key.
 Expected problems (missing/invalid font, invalid color, invalid text,
 and output write failures) are returned as readable Home Assistant service
 errors. Unexpected failures are logged with a traceback.
+\nColor values accept Pillow color names such as `white`, `black`, `red`, and `navy`, as well as hex values.\n
