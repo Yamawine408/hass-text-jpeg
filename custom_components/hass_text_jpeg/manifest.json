@@ -1,0 +1,10 @@
+{
+  "domain": "hass_text_jpeg",
+  "name": "Hass Text JPEG",
+  "version": "1.0.0",
+  "documentation": "https://github.com/",
+  "codeowners": [],
+  "requirements": ["freetype-py==2.5.1", "Pillow>=10.0.0"],
+  "config_flow": true,
+  "iot_class": "local_push"
+}
