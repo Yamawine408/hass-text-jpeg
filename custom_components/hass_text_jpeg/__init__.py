@@ -53,7 +53,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry) -> bool:
     async def handle_draw(call: ServiceCall) -> None:
-        data = SERVICE_SCHEMA(call.data)
+        data = SERVICE_SCHEMA(dict(call.data))
         filename = _validate_filename(data["filename"])
         font_path = _resolve_font(data["font"])
         output_dir = Path(OUTPUT_DIR)
