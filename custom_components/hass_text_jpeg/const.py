@@ -10,4 +10,5 @@ DEFAULT_QUALITY = 95
 DEFAULT_SPACING = 0
 
 FONT_DIR = "/config/www/fonts"
+DEFAULT_FONT = "NotoSansCJK-Regular.ttc"
 OUTPUT_DIR = "/media"

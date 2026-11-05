@@ -1,36 +1,34 @@
 draw:
-  name: Draw text JPEG
-  description: Render a single line of text to a JPEG file in /media.
+  name: Draw text to JPEG
+  description: Render text into a JPEG image and save it under /media.
   fields:
     text:
       name: Text
-      description: Text to render. Newlines are not supported.
+      description: Text to render. Explicit line breaks are supported.
       required: true
-      example: "緊急地震速報 深度5"
       selector:
         text:
+          multiline: true
     filename:
       name: Filename
-      description: Simple output filename in /media; .jpg or .jpeg.
+      description: JPEG filename to create in /media. Do not include a directory.
       required: true
-      example: "alert.jpg"
       selector:
         text:
     font:
       name: Font
-      description: Font filename under /config/www/fonts, or an absolute font path.
-      example: "NotoSansJP-Regular.ttf"
+      description: Optional font filename in /config/www/fonts, or an absolute font path. If omitted, the bundled Noto Sans CJK JP font is used.
       selector:
         text:
     width:
-      default: 400
+      name: Image width
       selector:
         number:
           min: 1
           max: 4096
           mode: box
     height:
-      default: 240
+      name: Image height
       selector:
         number:
           min: 1
@@ -38,37 +36,52 @@ draw:
           mode: box
     font_size:
       name: Font size
-      default: 32
       selector:
         number:
           min: 1
           max: 512
           mode: box
-    x:
-      default: 10
+    pos_x:
+      name: X position
+      description: Left edge of the text layout area.
       selector:
         number:
           mode: box
     pos_y:
       name: Y position
-      description: Top of the font line box. Use pos_y because bare y can be parsed as a boolean YAML key.
-      default: 10
+      description: Top edge of the first text line. Text below the image is clipped.
       selector:
         number:
           mode: box
+    align:
+      name: Horizontal alignment
+      description: Alignment of each line within the area from pos_x to the right edge.
+      default: left
+      selector:
+        select:
+          options:
+            - label: Left
+              value: left
+            - label: Center
+              value: center
+            - label: Right
+              value: right
+    wrap:
+      name: Wrap text
+      description: Wrap Japanese text by character and space-separated text by word. A word wider than the area is split by character.
+      default: true
+      selector:
+        boolean:
     color:
       name: Text color
-      default: "#000000"
       selector:
         text:
     background:
       name: Background color
-      default: "#ffffff"
       selector:
         text:
     quality:
       name: JPEG quality
-      default: 95
       selector:
         number:
           min: 1
@@ -76,7 +89,6 @@ draw:
           mode: slider
     spacing:
       name: Character spacing
-      default: 0
       selector:
         number:
           min: 0

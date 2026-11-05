@@ -10,6 +10,7 @@ from homeassistant.helpers import config_validation as cv
 
 from .const import (
     DEFAULT_BACKGROUND,
+    DEFAULT_FONT,
     DEFAULT_COLOR,
     DEFAULT_HEIGHT,
     DEFAULT_FONT_SIZE,
@@ -58,11 +59,19 @@ SERVICE_SCHEMA = vol.Schema(
         vol.Optional("spacing", default=DEFAULT_SPACING): vol.All(
             vol.Coerce(int), vol.Range(min=0, max=256)
         ),
+        vol.Optional("align", default="left"): vol.In(
+            ["left", "center", "right"]
+        ),
+        vol.Optional("wrap", default=True): cv.boolean,
     }
 )
 
 
 def _resolve_font(font: str) -> Path:
+    """Resolve a user font or fall back to the bundled Japanese font."""
+    if not font:
+        return Path(__file__).parent / "fonts" / DEFAULT_FONT
+
     font_path = Path(font).expanduser()
     if not font_path.is_absolute():
         font_path = Path(FONT_DIR) / font_path
@@ -114,6 +123,8 @@ async def async_setup_entry(hass: HomeAssistant, entry) -> bool:
                     background=data["background"],
                     quality=data["quality"],
                     spacing=data["spacing"],
+                    align=data["align"],
+                    wrap=data["wrap"],
                 )
             )
 
